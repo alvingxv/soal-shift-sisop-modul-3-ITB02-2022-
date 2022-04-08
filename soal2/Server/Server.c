@@ -176,6 +176,7 @@ int main(int argc, char const *argv[])
     char *login = "login";
     char *sama;
     char kirimtsv[1024] = {0};
+    char kirimsee[1024] = {0};
     char judulupload[1024] = {0};
     char judulproblem[1024] = {0};
     char file_contents[1024] = {0};
@@ -216,6 +217,7 @@ int main(int argc, char const *argv[])
                 if (strcmp(cmd, "add") == 0)
                 {
                     FILE *tsv = fopen("problems.tsv", "a+");
+                    FILE *see = fopen("see.tsv", "a+");
 
                     memset(buffer, 0, sizeof(buffer));
                     valread = read(new_socket, buffer, 1024);
@@ -245,10 +247,19 @@ int main(int argc, char const *argv[])
                     strcat(kirimtsv, "\t");
                     strcat(kirimtsv, judul);
                     strcat(kirimtsv, "\n");
+                    
+                    strcat(kirimsee, judul);
+                    strcat(kirimsee, " by ");
+                    strcat(kirimsee, username);
+                    strcat(kirimsee, "\n");
 
                     if (tsv)
                     {
                         fputs(kirimtsv, tsv);
+                    }
+                    if (see)
+                    {
+                        fputs(kirimsee, see);
                     }
 
                     // receive desctxt
@@ -280,7 +291,7 @@ int main(int argc, char const *argv[])
                     char *buf = 0;
                     char isi[1000] = {0};
                     long length;
-                    FILE *f = fopen("problems.tsv", "rb");
+                    FILE *f = fopen("see.tsv", "rb");
 
                     if (f)
                     {
