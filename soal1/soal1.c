@@ -62,50 +62,45 @@ void *mvquote()
     exec("/bin/find", argv);
 }
 
-void *mkhasil()
+void* mkhasil()
 {
     char *argv[] = {"mkdir", "hasil", NULL};
     exec("/bin/mkdir", argv);
 }
 
-void *ziphasil()
+void* ziphasil()
 {
-    char *argv[] = {"zip", "-re", "hasil.zip", "hasil/", NULL};
+    char *argv[] = {"zip","-P", "mihinomenestsatrio", "-r", "hasil.zip", "hasil", NULL};
     exec("/bin/zip", argv);
 }
 
-void *ziphasil2()
+void* ziphasil2()
 {
-    char *argv[] = {"zip", "-re", "hasil.zip", "hasil", "no.txt", NULL};
+    char *argv[] = {"zip","-P", "mihinomenestsatrio", "-r", "hasil.zip", "hasil", "no.txt", NULL};
     exec("/bin/zip", argv);
 }
 
-void *touchno()
-{
-    char *argv[] = {"echo", "no", ">>", "no.txt", NULL};
-    exec("/bin/echo", argv);
-}
 void addno()
 {
     FILE *fptr = fopen("no.txt", "w");
     fprintf(fptr, "no");
 }
 
-void *touch(char *dest, char *name)
+void* touch(char *dest, char *name)
 {
     chdir(dest);
     char *argv[] = {"touch", name, NULL};
     exec("/bin/touch", argv);
 }
 
-void *newline()
+void* newline()
 {
 
     char *argv[] = {"echo", "\n", NULL};
     exec("/bin/echo", argv);
 }
 
-void *decodemusic()
+void* decodemusic()
 {
     freopen("music.txt", "w", stdout);
     decode("/home/kali/modul3/music", "m1.txt");
@@ -125,9 +120,10 @@ void *decodemusic()
     decode("/home/kali/modul3/music", "m8.txt");
     newline();
     decode("/home/kali/modul3/music", "m9.txt");
+    fclose(stdout);
 }
 
-void *decodequote()
+void* decodequote()
 {
     freopen("quote.txt", "w", stdout);
     decode("/home/kali/modul3/quote", "q1.txt");
@@ -147,37 +143,24 @@ void *decodequote()
     decode("/home/kali/modul3/quote", "q8.txt");
     newline();
     decode("/home/kali/modul3/quote", "q9.txt");
+    fclose(stdout);
 }
 
-void *outputmusic()
-{
-    decodemusic();
-}
-void *outputquote()
-{
-    freopen("quote.txt", "w", stdout);
-    decodequote();
-}
 
 int main()
 {
-    pthread_t t1, t2, t3, t4, t5, t6, t7, t8;
+    pthread_t t1, t2, t3, t4;
     mkhasil();
-    pthread_join(t8, NULL);
     pthread_create(&t1, NULL, &unzipmusic, NULL);
     pthread_create(&t2, NULL, &unzipquote, NULL);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
-    freopen("music.txt", "w", stdout);
     decodemusic();
-    fclose(stdout);
-    freopen("quote.txt", "w", stdout);
     decodequote();
-    fclose(stdout);
-    pthread_create(&t5, NULL, &mvmusic, NULL);
-    pthread_create(&t6, NULL, &mvquote, NULL);
-    pthread_join(t5, NULL);
-    pthread_join(t6, NULL);
+    pthread_create(&t3, NULL, &mvmusic, NULL);
+    pthread_create(&t4, NULL, &mvquote, NULL);
+    pthread_join(t3, NULL);
+    pthread_join(t4, NULL);
     ziphasil();
     unziphasil();
     touch("/home/modul3/", "no.txt");
