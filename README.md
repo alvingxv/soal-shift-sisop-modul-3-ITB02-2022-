@@ -212,14 +212,19 @@ int main()
 ```
 ## Screenshot
 - Direktori **Hasil**
+
 ![1](https://raw.githubusercontent.com/Satriokml/images/main/Praktikum_3/hasil.png)
 - File **music.txt**
+
 ![2](https://raw.githubusercontent.com/Satriokml/images/main/Praktikum_3/music.png)
 - File **quote.txt**
+
 ![3](https://raw.githubusercontent.com/Satriokml/images/main/Praktikum_3/quote.png)
 - File **no.txt**
+
 ![4](https://raw.githubusercontent.com/Satriokml/images/main/Praktikum_3/no.png)
 - File **hasil.zip**
+
 ![5](https://raw.githubusercontent.com/Satriokml/images/main/Praktikum_3/hasilzip.png)
 
 ## Masalah yang ditemui
