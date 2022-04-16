@@ -231,4 +231,660 @@ int main()
 - Base64 tidak bisa langsung di input ke file
 - Zip tidak bisa menemukan direktori hasil
 
+# Soal 2
+Bluemary adalah seorang Top Global 1 di salah satu platform online judge. Suatu hari Ia ingin membuat online judge nya sendiri, namun dikarenakan Ia sibuk untuk mempertahankan top global nya, maka Ia meminta kamu untuk membantunya dalam membuat online judge sederhana. Online judge sederhana akan dibuat dengan sistem client-server dengan beberapa kriteria sebagai berikut:
+
+A. Pada saat client terhubung ke server, terdapat dua pilihan pertama yaitu register dan login. Jika memilih register, client akan diminta input id dan passwordnya untuk dikirimkan ke server. Data input akan disimpan ke file users.txt dengan format username:password. Jika client memilih login, server juga akan meminta client untuk input id dan passwordnya lalu server akan mencari data di users.txt yang sesuai dengan input client. Jika data yang sesuai ditemukan, maka client dapat login dan dapat menggunakan command-command yang ada pada sistem. Jika tidak maka server akan menolak login client. Username dan password memiliki kriteria sebagai berikut:
+- Username unique (tidak boleh ada user yang memiliki username yang sama)
+- Password minimal terdiri dari 6 huruf, terdapat angka, terdapat huruf besar dan kecil
+
+Format users.txt:
+```
+username:password
+username2:password2
+```
+
+B. Sistem memiliki sebuah database pada server untuk menampung problem atau soal-soal yang ada pada online judge. Database ini bernama problems.tsv yang terdiri dari judul problem dan author problem (berupa username dari author), yang dipisah dengan \t. File otomatis dibuat saat server dijalankan.
+
+C. Client yang telah login, dapat memasukkan command yaitu ‘add’ yang berfungsi untuk menambahkan problem/soal baru pada sistem. Saat client menginputkan command tersebut, server akan meminta beberapa input yaitu:
+- Judul problem (unique, tidak boleh ada yang sama dengan problem lain)
+- Path file description.txt pada client (file ini berisi deskripsi atau penjelasan problem)
+- Path file input.txt pada client (file ini berguna sebagai input testcase untuk menyelesaikan problem)
+- Path file output.txt pada client (file ini berguna untuk melakukan pengecekan pada submission client terhadap problem)
+
+Contoh:
+
+Client-side
+```
+add
+```
+
+Server-side
+```
+Judul problem:
+Filepath description.txt:
+Filepath input.txt:
+Filepath output.txt:
+```
+
+Client-side
+Client-side
+```
+<judul-problem-1>
+<Client/description.txt-1>
+<Client/input.txt-1>
+<Client/output.txt-1>
+```
+Seluruh file akan disimpan oleh server ke dalam folder dengan nama <judul-problem> yang di dalamnya terdapat file description.txt, input.txt dan output.txt. Penambahan problem oleh client juga akan mempengaruhi file problems.tsv.
+
+D. Client yang telah login, dapat memasukkan command ‘see’ yang berguna untuk menampilkan seluruh judul problem yang ada beserta authornya(author merupakan username client yang menambahkan problem tersebut). Format yang akan ditampilkan oleh server adalah sebagai berikut:
+```
+<judul-problem-1> by <author1>
+<judul-problem-2> by <author2>
+```
+
+E. Client yang telah login, dapat memasukkan command ‘download <judul-problem>’ yang berguna untuk mendownload file description.txt dan input.txt yang berada pada folder pada server dengan nama yang sesuai dengan argumen kedua pada command yaitu <judul-problem>. Kedua file tersebut akan disimpan ke folder dengan nama <judul-problem> di client.
+
+F. Client yang telah login, dapat memasukkan command ‘submit <judul-problem> <path-file-output.txt>’.  Command ini berguna untuk melakukan submit jawaban dari client terhadap problem tertentu. Algoritma yang dijalankan adalah client akan mengirimkan file output.txt nya melalui argumen ke 3 pada command, lalu server akan menerima dan membandingkan isi file output.txt yang telah dikirimkan oleh client dan output.txt yang ada pada folder dengan nama yang sesuai dengan argumen ke 2 pada command. Jika file yang dibandingkan sama, maka server akan mengirimkan pesan “AC” dan jika tidak maka server akan mengeluarkan pesan “WA”.
+
+G. Server dapat menangani multiple-connection. Dimana jika terdapat 2 atau lebih client yang terhubung ke server, maka harus menunggu sampai client pertama keluar untuk bisa melakukan login dan mengakses aplikasinya.
+
+
+## Penjelasan Code Soal 2
+
+## A
+Dalam point ini kita diminta untuk membuat sebuah register/login system dengan syarat2 yang telah diberikan. Username tidak boleh sama (unique) dan password harus Alphanum, 1 Huruf besar, 1 Huruf kecil, lebih dari 6 karakter.
+
+### Client
+```c
+printf("1. Login\n2. Register\nPilihan:");
+    scanf("%d", &pilihan);
+    if (pilihan == 1)
+    {
+        // login
+        send(sock, login, strlen(login), 0);
+    }
+    else if (pilihan == 2)
+    {
+        // regist
+        send(sock, regis, strlen(regis), 0);
+    }
+    valread = read(sock, buffer, 1024);
+
+    // Register
+    if (strcmp(buffer, "register") == 0)
+    {
+        //code register
+    }
+    else if (strcmp(buffer, "login") == 0)
+    {
+        //code login
+    }
+```
+### Server
+```c
+if (strcmp(buffer, "1") == 0)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        send(new_socket, login, strlen(login), 0); // Login
+        long length;
+        char *buff = 0;
+        FILE *akun = fopen("users.txt", "a+");
+
+        if (akun)
+        {
+            fseek(akun, 0, SEEK_END);
+            length = ftell(akun);
+            fseek(akun, 0, SEEK_SET);
+            buff = malloc(length);
+            if (buff)
+            {
+                fread(buff, 1, length, akun);
+            }
+            fclose(akun);
+        }
+        if (buff)
+        {
+            valread = read(new_socket, credentials, 1024);
+            sama = strstr(buff, credentials);
+            if (sama)
+            {
+                char *adaakun = "adaakun";
+                send(new_socket, adaakun, strlen(adaakun), 0);
+
+                // masuk command
+                
+            }
+            else
+            {
+                char *gagallogin = "gagallogin";
+                send(new_socket, gagallogin, strlen(gagallogin), 0);
+            }
+        }
+    }
+
+    else if (strcmp(buffer, "2") == 0)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        send(new_socket, regis, strlen(regis), 0); // Register
+        valread = read(new_socket, username, 1024);
+        FILE *akun = fopen("users.txt", "a+");
+        char line[1024];
+        while (fgets(line, sizeof(line), akun) != NULL)
+        {
+            char *token;
+            token = strtok(line, ":");
+            if (strcmp(token, username) == 0)
+            {
+                char *ada = "adausername";
+                send(new_socket, ada, strlen(ada), 0);
+                printf("err Username\n");
+                return 0;
+            }
+        }
+        char *tidakada = "tidakada";
+        send(new_socket, tidakada, strlen(tidakada), 0);
+        valread = read(new_socket, password, 1024);
+        if (strlen(password) < 6 || isalphanum(password) == 1)
+        {
+            char *passsalah = "passwordsalah";
+            send(new_socket, passsalah, strlen(passsalah), 0);
+            printf("err Password\n");
+            return 0;
+        }
+        char akuntxt[1024] = {0};
+        strcat(akuntxt, username);
+        strcat(akuntxt, ":");
+        strcat(akuntxt, password);
+        strcat(akuntxt, "\n");
+        fputs(akuntxt, akun);
+        fclose(akun);
+    }
+
+```
+
+Dapat dilihat client akan dapat memilih Login atau Register ketika menjalankan program. Jika user memilih 1, maka akan masuk ke if login dan jika user memilih 2 akan masuk ke if register.
+
+#### Register
+Pada masuk register, client akan mengirimkan sinyal ke server bahwa user ingin melakukan register, sehingga program dalam server akan masuk ke if bagian register. 
+
+Selanjutnya client akan diminta untuk memasukkan Username dan Password.Pada saat memasukkan username, Client akan mengirimkan username terlebih dahulu untuk melakukan pengecekan pada users.txt apakah username yang dimasukkan adalah unique. Jika Server mendeteksi username sama maka Client dan Server akan mengirimkan Pesan bahwa username telah ada, dan akan return 0. Jika server tidak mendekteksi username yang sama, maka pengguna akan lanjut diminta password. Setelah pengguna memasukkan password, client akan mengirimkan password tersebut ke server untuk mengecek apakah kriteria password yang dikirim telah sesuai.
+
+```c
+valread = read(new_socket, password, 1024);
+        if (strlen(password) < 6 || isalphanum(password) == 1)
+        {
+            char *passsalah = "passwordsalah";
+            send(new_socket, passsalah, strlen(passsalah), 0);
+            printf("err Password\n");
+            return 0;
+        }
+        char akuntxt[1024] = {0};
+        strcat(akuntxt, username);
+        strcat(akuntxt, ":");
+        strcat(akuntxt, password);
+        strcat(akuntxt, "\n");
+        fputs(akuntxt, akun);
+        fclose(akun);
+```
+
+```c
+int isalphanum(char *pass)
+{
+
+    int i = 0, k = 0, d = 0, l = 0, p;
+
+    i = strlen(pass);
+
+    for (int j = 0; j < i; j++)
+    {
+        p = pass[j];
+        if (p >= 97 && p <= 122)
+            k++;
+        else if (p >= 65 && p <= 90)
+            l++;
+        else if (p == 32)
+            k++;
+        else if (p >= 48 && p <= 57)
+            d++;
+    }
+
+    if (k > 0 && d > 0 && l > 0)
+    {
+        return 0;
+        // printf("String is AlphaNumeric :%s", pass);
+    }
+    else
+    {
+        return 1;
+        // printf("String is Not AlphaNumeric :%s", pass);
+    }
+}
+```
+
+Dapat dilihat diatas adalah pengecekan kriteria password. Untuk mengecek panjang password, digunakan strlen untuk mengukur panjang string tersebut. Untuk mengecek Alphanum dan kapital, telah dibuat sebuah fungsi yang akan mengecek apakah string tersebut Alphanum dan kapital. Dalam fungsi isalphanum itu string akan dicek karakter per karakter menggunakan ASCII. 
+
+Jika Password yang diinputkan tidak sesuai dengan kriteria, maka program akan mengeluarkan pesan bahwa register gagal dan program akan return 0. Jika Password yang diinputkan sesuai, maka program akan memasukkan username dan password tersebut ke akun.txt dengan format `username:password`.
+
+#### Login
+
+Pada menu login, pengguna akan diminta untuk memasukkan Username dan Password. Setelah itu kedua string tersebut akan diconcat dengan ":" agar sesuai dengan format yang telah ada di akun.txt. Selanjutnya Client akan mengirimkan hasil concat tersebut dan akan diterima oleh server. Setelah itu Server akan melakukan pengecekan di file akun.txt dengan menggunakan strstr. Jika strstr mereturn value, maka login berhasil dan pengguna dapan mengakses command2 yang ada. Jika strstr tidak mereturn value maka program akan mengirimkan pesan bahwa login gagal dan program akan return 0.
+
+## B
+Disini kita diminta untuk membuat database server yaitu Problems.tsv yang terdiri dari judul problem dan author problem (berupa username dari author), yang dipisah dengan \t. File ini akan dibuat ketika command add dijalankan.
+
+## C
+Dalam poin ini kita diminta untuk membuat command `add` yang dimana akan digunakan user untuk memasukkan problem ke server. 
+
+### Client
+```c
+if (strcmp(command, "add") == 0)
+{
+    send(sock, command, strlen(command), 0);
+    sleep(1);
+    send(sock, username, strlen(username), 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    bzero(buffer, sizeof(buffer));
+    printf("Judul Problem:");
+    scanf("%s", buffer);
+    send(sock, buffer, strlen(buffer), 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(sock, buffer, 1024);
+    if (strcmp(buffer, "folderada") == 0)
+    {
+        printf("JUDUL PROBLEM TELAH ADA\n");
+    }
+    else if (strcmp(buffer, "foldergada") == 0)
+    {
+        // send desc.txt
+        printf("Path file description.txt:");
+        scanf("%s", pathdesc);
+        send(sock, pathdesc, strlen(pathdesc), 0);
+
+        send_file(sock, pathdesc);
+
+        // send input.txt
+        printf("Path file input.txt:");
+        scanf("%s", pathinput);
+        send(sock, pathinput, strlen(pathinput), 0);
+
+        send_file(sock, pathinput);
+
+        // send output.txt
+        printf("Path file output.txt:");
+        scanf("%s", pathoutput);
+        send(sock, pathoutput, strlen(pathoutput), 0);
+
+        send_file(sock, pathoutput);
+    }
+}
+```
+```c
+void send_file(int socket, char *namafile)
+{
+    char file_length[1024];
+    char *file_content = (char *)malloc(sizeof(char) * 65536);
+
+    memset(file_length, 0, sizeof(file_length));
+
+    char *file_contents;
+    file_contents = read_file(namafile);
+    if (file_contents == NULL)
+    {
+        printf("Error reading file.\n");
+        return;
+    }
+    sleep(2);
+    send(socket, file_contents, strlen(file_contents), 0);
+}
+```
+### Server
+
+```c
+if (strcmp(cmd, "add") == 0)
+{
+    FILE *tsv = fopen("problems.tsv", "a+");
+    FILE *see = fopen("see.tsv", "a+");
+
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(username, buffer);
+
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(judul, buffer);
+    DIR *dir = opendir(judul);
+    if (dir)
+    {
+        /* Directory exists. */
+        char *folderada = "folderada";
+        send(new_socket, folderada, strlen(folderada), 0);
+        closedir(dir);
+        return 0;
+    }
+    else
+    {
+        char *foldergada = "foldergada";
+        send(new_socket, foldergada, strlen(foldergada), 0);
+    }
+
+    mkdir(judul, 0777);
+    printf("Judul problem:%s\n", judul);
+    strcat(kirimtsv, username);
+    strcat(kirimtsv, "\t");
+    strcat(kirimtsv, judul);
+    strcat(kirimtsv, "\n");
+
+    strcat(kirimsee, judul);
+    strcat(kirimsee, " by ");
+    strcat(kirimsee, username);
+    strcat(kirimsee, "\n");
+
+    if (tsv)
+    {
+        fputs(kirimtsv, tsv);
+    }
+    if (see)
+    {
+        fputs(kirimsee, see);
+    }
+
+    // receive desctxt
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(pathdesc, buffer);
+    memset(buffer, 0, sizeof(buffer));
+
+    write_file(new_socket, judul, pathdesc);
+
+    // receive input.txt
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(pathinput, buffer);
+    memset(buffer, 0, sizeof(buffer));
+
+    write_file(new_socket, judul, pathinput);
+
+    // recieve output.txt
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(pathoutput, buffer);
+    memset(buffer, 0, sizeof(buffer));
+
+    write_file(new_socket, judul, pathoutput);
+}
+```
+```c
+void write_file(int socket, char *folder, char *namafile)
+{
+    char buffer[1024] = {0};
+    char filepath[2048];
+    memset(filepath, 0, sizeof(filepath));
+    strcat(filepath, folder);
+    strcat(filepath, "/");
+    strcat(filepath, namafile);
+    printf("Filepath %s: %s\n", namafile, filepath);
+
+    char file_isi[65535] = {0};
+
+    memset(buffer, 0, sizeof(buffer));
+    read(socket, buffer, 1024);
+    strcpy(file_isi, buffer);
+
+    FILE *fptr = fopen(filepath, "a+");
+    fprintf(fptr, "%s", file_isi);
+    fclose(fptr);
+    memset(file_isi, 0, sizeof(file_isi));
+    memset(filepath, 0, sizeof(filepath));
+    memset(buffer, 0, sizeof(buffer));
+}
+```
+
+Pertama User akan diminta untuk memasukkan judul problem yang dimana judul problem ini juga akan menjadi nama folder dari problem tersebut. Dalam soal ditulis bahwa judul problem adalah unique, sehingga client perlu mengirimkan judul problem tersebut ke server untuk dicek apakah folder yang bernama judul problem telah ada atau belum, jika telah ada maka program akan mengirimkan pesan bahwa judul telah ada dan program akan return 0. Jika folder belum ada, maka program akan melanjutkan inputan dari pengguna.
+
+3 input setelah judul adalah konten dari problem tersebut, ada desc.txt, input.txt, dan output.txt. Untuk mengirimkan ketiga file ini harus dipastikan pada folder `client` telah ada file yang ingin dikirimkan. Setelah mengirimkan nama file yang ingin upload maka client akan memanggil fungsi `send_file` untuk mengirimkan konten dari file tersebut ke server. Dan untuk menerima file dari client, pada server akan memanggil fungsi `write_file`. Dengan ini file yang ingin dikirimkan pengguna dari client akan terkirim ke dalam folder problem yang telah ada di server.
+
+## D
+Dalam point ini kita diminta membuat command `see` yang berguna untuk melihat seluruh judul problem yang ada beserta authornya dengan format `<judul-problem-1> by <author1>`. 
+
+### Client
+```c
+else if (strcmp(command, "see") == 0)
+{
+    char *see = "see";
+    send(sock, see, strlen(see), 0);
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(sock, buffer, 1024);
+    strcat(isi, buffer);
+    printf("%s", isi);
+}
+```
+### Server
+```c
+else if (strcmp(cmd, "see") == 0)
+{
+    char *buf = 0;
+    char isi[1000] = {0};
+    long length;
+    FILE *f = fopen("see.tsv", "rb");
+
+    if (f)
+    {
+        fseek(f, 0, SEEK_END);
+        length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        buf = malloc(length);
+        if (buf)
+        {
+            fread(buf, 1, length, f);
+        }
+        fclose(f);
+    }
+
+    if (buf)
+    {
+        strcpy(isi, buf);
+        send(new_socket, isi, strlen(isi), 0);
+    }
+}
+```
+Dapat dilihat diatas bahwa file yang akan dibuka adalah see.tsv, yang dimana ini adalah problems.tsv yang berbeda format. Server akan membaca isi dari file see.tsv tersebut dan mengirimkannya ke client untuk diprint.
+
+## E
+Dalam poin ini kita diminta untuk membuat command `download` yang dimana berguna untuk melakukan download desc.txt dan input.txt dari sebuah problem. 
+
+### Client
+
+```c
+else if (strcmp(command, "download") == 0)
+{
+    char *down = "download";
+    memset(buffer, 0, sizeof(buffer));
+    printf("Masukkan judul: ");
+    scanf("%s", juduldownload);
+    send(sock, down, strlen(down), 0);
+    sleep(1);
+    send(sock, juduldownload, strlen(juduldownload), 0);
+
+    // receive desctxt
+    char *desctxt = "desc.txt";
+    write_file(sock, juduldownload, desctxt);
+    // receive input.txt
+    char *inputtxt = "input.txt";
+    write_file(sock, juduldownload, inputtxt);
+}
+```
+```c
+void write_file(int socket, char *folder, char *namafile)
+{
+    char buffer[1024] = {0};
+    char filepath[2048] = {0};
+    strcat(filepath, "./");
+    strcat(filepath, folder);
+    strcat(filepath, "/");
+    strcat(filepath, namafile);
+    printf("Filepath %s: %s\n", namafile, filepath);
+    mkdir(folder, 0777);
+
+    char file_isi[1024] = {0};
+    read(socket, buffer, 1024);
+    strcpy(file_isi, buffer);
+    FILE *fptr = fopen(filepath, "a+");
+    fprintf(fptr, "%s", file_isi);
+    fclose(fptr);
+    memset(file_isi, 0, sizeof(file_isi));
+    memset(filepath, 0, sizeof(filepath));
+    memset(buffer, 0, sizeof(buffer));
+}
+```
+
+### Server
+```c
+else if (strcmp(cmd, "download") == 0)
+{
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(judulupload, buffer); // file'
+
+    // send desc
+    char *desctxt = "desc.txt";
+    send_file(new_socket, judulupload, desctxt);
+
+    // send desc
+    char *inputtxt = "input.txt";
+    send_file(new_socket, judulupload, inputtxt);
+}
+```
+```c
+void send_file(int socket, char *namafolder, char *namafile)
+{
+
+    char filepath[2048];
+    memset(filepath, 0, sizeof(filepath));
+    strcat(filepath, "./");
+    strcat(filepath, namafolder);
+    strcat(filepath, "/");
+    strcat(filepath, namafile);
+
+    char file_length[1024];
+    char *file_content = (char *)malloc(sizeof(char) * 65536);
+
+    memset(file_length, 0, sizeof(file_length));
+
+    char *file_contents;
+    file_contents = read_file(filepath);
+    if (file_contents == NULL)
+    {
+        printf("Error reading file.\n");
+        return;
+    }
+    sleep(2);
+    send(socket, file_contents, strlen(file_contents), 0);
+}
+```
+
+Pertama pengguna akan diminta untuk memasukkan sebuah judul problem, lalu client akan mengirimkan judul tersebut ke server. Server akan menerima judul problem tersebut dan akan memanggil fungsi `send_file` untuk mengirimkan file sesuai judul yang telah diminta Client. Selanjutnya Client akan menerima file yang telah dikirimkan Server dengan memanggil fungsi `write_file`. File2 tersebut akan disimpan di Client pada folder dengan nama judul problemnya.
+
+## F
+Pada poin ini kita diminta untuk membuat command `submit` yang berfungsi untuk melakukan submit jawaban dari client terhadap problem tertentu. 
+
+### Client
+```c
+else if (strcmp(command, "submit") == 0)
+{
+    char *submit = "submit";
+    memset(buffer, 0, sizeof(buffer));
+    printf("Submit:");
+    scanf("%s %s", judulproblem, pathsubmit);
+    send(sock, submit, strlen(submit), 0);
+    sleep(1);
+    send(sock, judulproblem, strlen(judulproblem), 0);
+    sleep(1);
+    char *file_contents;
+    file_contents = read_file(pathsubmit);
+    send(sock, file_contents, strlen(file_contents), 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(sock, buffer, 1024);
+    if (strcmp(buffer, "benar") == 0)
+    {
+        printf("AC");
+    }
+    else if (strcmp(buffer, "salah") == 0)
+    {
+        printf("WA");
+    }
+}
+```
+
+### Server
+
+```c
+else if (strcmp(cmd, "submit") == 0)
+{
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(judulproblem, buffer);
+
+    memset(buffer, 0, sizeof(buffer));
+    valread = read(new_socket, buffer, 1024);
+    strcpy(file_contents, buffer);
+
+    strcat(pathkunci, "./");
+    strcat(pathkunci, judulproblem);
+    strcat(pathkunci, "/");
+    strcat(pathkunci, "output.txt");
+
+    char *kunci;
+    kunci = read_file(pathkunci);
+
+    if (strcmp(kunci, file_contents) == 0)
+    {
+        char *benar = "benar";
+        send(new_socket, benar, strlen(benar), 0);
+    }
+    else
+    {
+        char *salah = "salah";
+        send(new_socket, salah, strlen(salah), 0);
+    }
+}
+```
+
+Dapat dilihat diatas, algoritma yang digunakan adalah Client akan memasukkan nama file dan nama problem yang ingin disubmit. Pertama pengguna akan memasukkan judul problem dan namafile yang ingin disubmit (file harus sudah ada di folder client). Lalu Client akan membaca isi dari file yang ingin disubmit, setelah itu dikirimkan ke server untuk membandingkan.
+
+ Pada Server jika isi dari file yang dikirimkan dari Client sama dengan isi dari output.txt problem tersebut. Maka server akan mengirimkan sinyal bahwa jawaban benar ke Client, dan Program akan print `AC`. dan jika isi dari file yang dikirimkan CLient berbeda dari isi output.txt, maka server akan mengirimkan sinyal jawaban salah ke Client, dan program akan print `WA`
+
+## Kendala yang dihadapi
+Kendala yang dihadapi adalah tidak tau cara menjadikan argumen setelah command menjadi satu line.
+
+## Screenshot hasil soal 2
+
+#### **HASIL SETELAH REGISTER**
+![Screenshot 2022-04-16 234040](https://user-images.githubusercontent.com/83297238/163683772-2660a666-a901-4888-b240-6232047dcce7.png)
+
+#### **HASIL SETELAH COMMAND ADD**
+![Screenshot 2022-04-16 234359](https://user-images.githubusercontent.com/83297238/163683845-8436b1b6-0ef5-44f2-95ca-2486593748c1.png)
+#### **ISI iniproblem**
+![Screenshot 2022-04-16 234520](https://user-images.githubusercontent.com/83297238/163683887-30644d05-180a-40aa-8827-7cb1bc4e6d96.png)
+
+#### **HASIL SETELAH COMMAND SEE**
+![Screenshot 2022-04-16 234744](https://user-images.githubusercontent.com/83297238/163683951-480123ea-247d-4e82-a21f-9ff7003685f7.png)
+
+#### **HASIL SETELAH COMMAND DOWNLOAD**
+![Screenshot 2022-04-16 234927](https://user-images.githubusercontent.com/83297238/163684012-ba0e1d0d-6351-4b29-8155-67b8de0d8859.png)
+![Screenshot 2022-04-16 234939](https://user-images.githubusercontent.com/83297238/163684013-088cda79-5ab5-43e9-becb-42d35506db67.png)
+#### **ISI iniproblem**
+![Screenshot 2022-04-16 235044](https://user-images.githubusercontent.com/83297238/163684052-6e150875-79b9-4fb5-b28a-26be88f656c0.png)
+
+#### **HASIL SETELAH COMMAND SUBMIT**
+#### **Jawaban Benar**
+![Screenshot 2022-04-16 235225](https://user-images.githubusercontent.com/83297238/163684102-a83a6771-f583-4ef5-8430-b2d7628228bf.png)
+
+#### **Jawaban Salah**
+![Screenshot 2022-04-16 235411](https://user-images.githubusercontent.com/83297238/163684159-327bb13f-1cfe-4d84-b74b-aaa4e6179a3d.png)
+
+
 
