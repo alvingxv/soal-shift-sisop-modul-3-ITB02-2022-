@@ -886,5 +886,289 @@ Kendala yang dihadapi adalah tidak tau cara menjadikan argumen setelah command m
 #### **Jawaban Salah**
 ![Screenshot 2022-04-16 235411](https://user-images.githubusercontent.com/83297238/163684159-327bb13f-1cfe-4d84-b74b-aaa4e6179a3d.png)
 
+# Soal 3
+
+Nami adalah seorang pengoleksi harta karun handal. Karena Nami memiliki waktu luang, Nami pun mencoba merapikan harta karun yang dimilikinya berdasarkan jenis/tipe/kategori/ekstensi harta karunnya. Setelah harta karunnya berhasil dikategorikan, Nami pun mengirimkan harta karun tersebut ke kampung halamannya.
+
+A. Hal pertama yang perlu dilakukan oleh Nami adalah mengextract zip yang diberikan ke dalam folder “/home/[user]/shift3/”. Kemudian working directory program akan berada pada folder “/home/[user]/shift3/hartakarun/”. Karena Nami tidak ingin ada file yang tertinggal, program harus mengkategorikan seluruh file pada working directory secara rekursif
+
+B. Semua file harus berada di dalam folder, jika terdapat file yang tidak memiliki ekstensi, file disimpan dalam folder “Unknown”. Jika file hidden, masuk folder “Hidden”.
+
+C. Agar proses kategori bisa berjalan lebih cepat, setiap 1 file yang dikategorikan dioperasikan oleh 1 thread.
+
+D. Untuk mengirimkan file ke Cocoyasi Village, nami menggunakan program client-server. Saat program client dijalankan, maka folder /home/[user]/shift3/hartakarun/” akan di-zip terlebih dahulu dengan nama “hartakarun.zip” ke working directory dari program client.
+
+E. Client dapat mengirimkan file “hartakarun.zip” ke server dengan mengirimkan command berikut ke server
+
+##### Note dan Ketentuan Soal:
+* Kategori folder tidak dibuat secara manual, harus melalui program C
+* Program ini tidak case sensitive. Contoh: JPG dan jpg adalah sama
+* Jika ekstensi lebih dari satu (contoh “.tar.gz”) maka akan masuk ke folder dengan titik terdepan (contoh “tar.gz”)
+* Dilarang juga menggunakan fork, exec dan system(), kecuali untuk bagian zip pada soal d
+
+## Penjelasan Code Soal 3
+Pada soal ini kita akan diminta untuk mengunzip suatu file kemudian memisahkan isi zip tersebut berdasarkan dari ekstensinya. Setelah itu seluruh file dizip kembali dan dikirimkan menggunakan socket client server.
+
+## A
+
+Pada soal A ini kami diminta untuk mengunzip file `hartakarun.zip` ke folder /home/rachmita/shift3/. Kemudian working directory berada pada home/rachmita/shift3/hartakarun/ dan file dikategorikan secara rekursif/
+
+ Pada soal ini kami melakukan unzip secara manual kemudian mengkategorikan file dengan fungsi `listFileRecursively` 
+
+## B
+
+Pada soal B, akan dibuat dua directory bary yaitu "Unknown" dan "Hidden". Pada folder unknown berfungsi untuk menamoung file yang tidak memiliki ekstensi. Sedangkan untuk folder hidden akan berisi file hidden.
+```c
+void *move(void *filename)
+{
+    char cwd[PATH_MAX];
+    char dirname[200];
+    char hidden[100];
+    char hiddenname[100];
+    char file[100];
+    char existsfile[100];
+    int i;
+    strcpy(existsfile, filename);
+    strcpy(hiddenname, filename);
+    char *namaa = strrchr(hiddenname, '/');
+    strcpy(hidden, namaa);
+
+    if (hidden[1] == '.')
+    {
+        strcpy(dirname, "Hidden");
+    }
+    else if (strstr(filename, ".") != NULL)
+    {
+        strcpy(file, filename);
+        strtok(file, ".");
+        char *token = strtok(NULL, "");
+        for (i = 0; token[i]; i++)
+        {
+            token[i] = tolower(token[i]);
+        }
+        strcpy(dirname, token);
+    }
+    else
+    {
+        strcpy(dirname, "Unknown");
+    }
+    int exist = checkFile(existsfile);
+    if (exist)
+        mkdir(dirname, 0777);
+
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+    {
+        char *nama = strrchr(filename, '/');
+        char namafile[200];
+        strcpy(namafile, cwd);
+        strcat(namafile, "/");
+        strcat(namafile, dirname);
+        strcat(namafile, nama);
+
+        rename(filename, namafile);
+    }
+}
+```
+Kami membuat fungsi `move` untuk membantu memindahkan setiap file ke tiap tiap folder sesuai nama ekstensi, namun dengan aturan tidak sesnsitive case sehingga menggunakan tolower untuk membuat huruf kalpital menjadi kecil. Kemudian hidden jika diawali '.' dan unknown untuk yang tidak memiliki ekstensi dengan pemisahnya strtok(.). Kemudian akan dipindahkan ke nama directorinya yang sesuai.
+
+## C
+
+Selanjutnya karena pada soal A juga terdapat perintah melist file secara rekursif pada fungsi ini dibuat fungsi `listFileRecursively`
+```c
+void listFilesRecursively(char *basePath)
+{
+    char path[1000];
+    struct dirent *dp;
+    struct stat buffer;
+    DIR *dir = opendir(basePath);
+    int n = 0;
+
+    if (!dir)
+        return;
+
+    while ((dp = readdir(dir)) != NULL)
+    {
+        if (strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") != 0)
+        {
+            strcpy(path, basePath);
+            strcat(path, "/");
+            strcat(path, dp->d_name);
+
+            if (stat(path, &buffer) == 0 && S_ISREG(buffer.st_mode))
+            {
+                pthread_t thread;
+                int err = pthread_create(&thread, NULL, move, (void *)path);
+                pthread_join(thread, NULL);
+            }
+
+            listFilesRecursively(path);
+        }
+    }
+    closedir(dir);
+}
+```
+Fungsi ini berfungsi untuk melist file secara rekursif. Kemudian setelah dilist, dibuat juga thread dan fungsi *move tadi sebagai argument dan setelah dibuat thread dilanjutkan menggunakan pthread_join
+
+## D
+
+Pada soal ini pertama kita harus melakukan zip dari folder hartakarun yang sudah dikategorikan berdasarkan ekstensinya pada program client. Berikut adalah program dari `client.c`
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <arpa/inet.h>
+#define SIZE 1024
+ 
+void send_file(FILE *fp, int sockfd){
+  int n;
+  char data[SIZE] = {0};
+ 
+  while(fgets(data, SIZE, fp) != NULL) {
+    if (send(sockfd, data, sizeof(data), 0) == -1) {
+      perror("[-]Error in sending file.");
+      exit(1);
+    }
+    bzero(data, SIZE);
+  }
+}
+ 
+int main(){
+  char *ip = "127.0.0.1";
+  int port = 8080;
+  int e;
+ 
+  int sockfd;
+  struct sockaddr_in server_addr;
+  FILE *fp;
+  char *filename = "hartakarun.zip";
+ 
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if(sockfd < 0) {
+    perror("[-]Error in socket");
+    exit(1);
+  }
+  printf("[+]Server socket created successfully.\n");
+ 
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = port;
+  server_addr.sin_addr.s_addr = inet_addr(ip);
+ 
+  e = connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+  if(e == -1) {
+    perror("[-]Error in socket");
+    exit(1);
+  }
+ printf("[+]Connected to Server.\n");
+
+ char command[100];
+ scanf("%s", command);
+ if(strcmp(command, "send hartakarun.zip") == 0){
+  // scanf("%s", filename);
+ 
+  fp = fopen(filename, "r");
+  if (fp == NULL) {
+    perror("[-]Error in reading file.");
+    exit(1);
+  }
+
+ 
+  send_file(fp, sockfd);
+  printf("[+]File data sent successfully.\n");
+ 
+  printf("[+]Closing the connection.\n");
+  close(sockfd);
+ }
+  return 0;
+}
+```
+
+## E
+
+Soal E ini ketika client mengirimkan command `send hartakarun.zip` maka pada server akan mendapatkan hartakarun.zip yang sama. Berikut adalah program dari `server.c`
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#define SIZE 1024
+ 
+void write_file(int sockfd){
+  int n;
+  FILE *fp;
+  char *filename = "hartakarun.zip";
+  char buffer[SIZE];
+ 
+  fp = fopen(filename, "w");
+  while (1) {
+    n = recv(sockfd, buffer, SIZE, 0);
+    if (n <= 0){
+      break;
+      return;
+    }
+    fprintf(fp, "%s", buffer);
+    bzero(buffer, SIZE);
+  }
+  return;
+}
+ 
+int main(){
+  char *ip = "127.0.0.1";
+  int port = 8080;
+  int e;
+ 
+  int sockfd, new_sock;
+  struct sockaddr_in server_addr, new_addr;
+  socklen_t addr_size;
+  char buffer[SIZE];
+ 
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if(sockfd < 0) {
+    perror("[-]Error in socket");
+    exit(1);
+  }
+  printf("[+]Server socket created successfully.\n");
+ 
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = port;
+  server_addr.sin_addr.s_addr = inet_addr(ip);
+ 
+  e = bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+  if(e < 0) {
+    perror("[-]Error in bind");
+    exit(1);
+  }
+  printf("[+]Binding successfull.\n");
+ 
+  if(listen(sockfd, 10) == 0){
+ printf("[+]Listening....\n");
+ }else{
+ perror("[-]Error in listening");
+    exit(1);
+ }
+ 
+  addr_size = sizeof(new_addr);
+  new_sock = accept(sockfd, (struct sockaddr*)&new_addr, &addr_size);
+  write_file(new_sock);
+  printf("[+]Data written in the file successfully.\n");
+ 
+  return 0;
+}
+
+```
+
+## Kendala yang dihadapi
+Kendala yang dihadapi yaitu ketika akan mengzip kembali folder yang sudah diunzip tanpa bantuan `execv` , `fork`, dan `system` kami kesusahan menemukan alternatifnya. Kemudian untuk program client server berhasil connect namun ketika memasukkan command `send hartakarun.zip` terjadi error. Beberapa folder memiliki isi tidak sesuai.
+## Screenshot hasil soal 3
+Berikut adalah screenshoot `/home/rachmita/shift3/hartakarun` yang berisi folder kategori ekstensi hasil extract dari hartakarun.zip
+![1](https://raw.githubusercontent.com/mitaannisa/.github-images/main/folder%20hartakarun.PNG)
+Berikut adalah tree dari `/shift3/hartakarun/`
+![2](https://raw.githubusercontent.com/mitaannisa/.github-images/main/tree%20shift3.PNG)
+![3](https://raw.githubusercontent.com/mitaannisa/.github-images/main/tree2.PNG)
+Kemudian terdapat folder unknown dengan isi sebagai berikut
+![4](https://raw.githubusercontent.com/mitaannisa/.github-images/main/3d.PNG)
+Berikut adalah folder untuk client dan server
+![5](https://raw.githubusercontent.com/mitaannisa/.github-images/main/folder%20client.PNG)
+![6](https://raw.githubusercontent.com/mitaannisa/.github-images/main/folder%20server.PNG)
 
 
